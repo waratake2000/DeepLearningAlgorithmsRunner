@@ -1,6 +1,6 @@
 Time Information
-UTC,2023-06-13 08:11:07.667598+00:00
-JST,2023-06-13 17:11:07.675535+09:00
+UTC,2023-06-13 08:17:49.393486+00:00
+JST,2023-06-13 17:17:49.401038+09:00
 
 System Information
 System,Linux
@@ -15,8 +15,8 @@ Physical cores,18
 Total cores,36
 Max Frequency(Mhz),4633.33
 Min Frequency(Mhz),1200.00
-Current Frequency(Mhz),1291.45
-Total CPU Usage(%),5.3
+Current Frequency(Mhz),1241.47
+Total CPU Usage(%),4.7
 
 GPU Information
 GPU name,NVIDIA GeForce RTX 3090
@@ -27,5 +27,5 @@ Used GPU memory,3.0
 Free GPU memory,24265.0
 Memory percentage,4.6
 Maximum GPU power consumption,350.00 W
-Current GPU power consumption,153.77 W
-GPU temperature,66.0
+Current GPU power consumption,20.68 W
+GPU temperature,52.0
