@@ -19,7 +19,7 @@ print(train_data_len_divisors)
 for batch_size in train_data_len_divisors[1:]:
     # for data_aug_factor in range(0,4):
     try:
-        command = ["python3", "train.py", "--EPOCHS", "500", "--BATCH_SIZE", f"{batch_size}", "--LR", "0.0001", "--MODEL_FILE", "./models/CommonCnn.py", "--DATA_AUG_FAC", "0"]
+        command = ["python3", "train.py", "--EPOCHS", "200", "--BATCH_SIZE", f"{batch_size}", "--LR", "0.0001", "--MODEL_FILE", "./models/CommonCnn.py", "--DATA_AUG_FAC", "0"]
         subprocess.run(command)
     except:
         continue

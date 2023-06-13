@@ -1,0 +1,31 @@
+Time Information
+UTC,2023-06-13 07:59:23.872306+00:00
+JST,2023-06-13 16:59:23.884162+09:00
+
+System Information
+System,Linux
+Node Name,329235310dcd
+Release,5.10.0-22-amd64
+Version,#1 SMP Debian 5.10.178-3 (2023-04-22)
+
+CPU Information
+CPU,Intel(R) Core(TM) i9-10980XE CPU @ 3.00GHz
+Processor,x86_64
+Physical cores,18
+Total cores,36
+Max Frequency(Mhz),4633.33
+Min Frequency(Mhz),1200.00
+Current Frequency(Mhz),1454.45
+Total CPU Usage(%),5.8
+
+GPU Information
+GPU name,NVIDIA GeForce RTX 3090
+NVIDIA Driver Version,470.182.03
+CUDA Version,11.4
+Total GPU memory,24268.0
+Used GPU memory,3.0
+Free GPU memory,24265.0
+Memory percentage,4.1
+Maximum GPU power consumption,350.00 W
+Current GPU power consumption,22.21 W
+GPU temperature,46.0
