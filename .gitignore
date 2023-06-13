@@ -7,6 +7,9 @@ id_git_container
 id_git_container.pub
 .bash_history
 .nv
+.config
+valid_images/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

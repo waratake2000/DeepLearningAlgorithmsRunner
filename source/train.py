@@ -4,6 +4,7 @@ import torch.optim as optim
 import torch.nn as nn
 
 import argparse
+import inspect
 import importlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,6 +15,7 @@ import pandas as pd
 from datetime import datetime
 from tqdm import tqdm
 import datetime as dt
+import time
 
 import imgaug as ia
 import imgaug.augmenters as iaa
@@ -29,6 +31,23 @@ import config
 
 plt.style.use("ggplot")
 
+def import_class_from_file(dir_path):
+    module_name = str(dir_path).replace("./models/", "").replace(".py", "")
+    spec = importlib.util.spec_from_file_location(module_name, dir_path)
+    print(spec)
+
+    # モジュールを作成してロードします
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # モジュール内のクラスのリストを取得します
+    classes = [member for member in inspect.getmembers(module, inspect.isclass) if member[1].__module__ == module_name]
+    if not classes:
+        raise Exception(f"No classes found in {module_name}")
+    # 最初のクラスを取得します
+    class_ = classes[0][1]
+
+    return class_
 
 def train_test_split(csv_path, split):
     df_data = pd.read_csv(csv_path, header=None)
@@ -204,7 +223,7 @@ def validate(model, dataloader, data, criterion):
 
 
 def record_progress_vram_information(
-    file_name, epoch_num, start_time, lap_time, train_loss, valid_loss
+    file_name, epoch_num, epoch_start_time, lap_time,total_time, train_loss, valid_loss
 ):
     gpu = GPU.getGPUs()[0]
     mem_info = psutil.virtual_memory()
@@ -224,23 +243,25 @@ def record_progress_vram_information(
         # ヘッダがなければ書き込む
         if not os.path.isfile(file_name) or os.stat(file_name).st_size == 0:
             header = [
-                "epoch_num",
-                "start_time",
-                "lap_time",
-                "train_loss",
-                "valid_loss",
-                "used_gpu_memory",
-                "free_gpu_memory",
-                "memory_percentage",
-                "current_gpu_power_consumption",
-                "gpu_temperature",
+                "EPOCH_NUM",
+                "EPOCH_START_TIME",
+                "LAP_TIME",
+                "TOTAL_TIME",
+                "TRAIN_LOSS",
+                "VALID_LOSS",
+                "USED_GPU_MOMORY",
+                "FREE_GPU_MEMORY",
+                "MEMORY_PERCENTAGE",
+                "CURRENT_GPU_POWER_CONSUMPTION",
+                "GPU_TEMPERATURE",
             ]
             writer.writerow(header)
 
         write_content = [
             epoch_num,
-            start_time,
+            epoch_start_time,
             lap_time,
+            total_time,
             train_loss,
             valid_loss,
             used_gpu_memory,
@@ -281,6 +302,7 @@ def model_test(model,model_path,dataset_path,image_list,save_image_dir):
             plt.close()
 
 def main():
+    start_time = time.time()
     # /root/source/result
 
     # コマンドライン引数からハイパーパラーメータを取得する
@@ -352,9 +374,8 @@ def main():
     train_loader = DataLoader(train_tensor_data, batch_size=BATCH_SIZE, shuffle=True)
     valid_loader = DataLoader(valid_tensor_data, batch_size=BATCH_SIZE, shuffle=True)
 
-    module = importlib.import_module(model_name)
     # モジュール内のクラスを取得
-    FaceKeypointModel = getattr(module, "FaceKeypointModel")
+    FaceKeypointModel = import_class_from_file(MODEL_FILE)
 
     model = FaceKeypointModel().to(config.DEVICE)
     # print(model)
@@ -365,17 +386,17 @@ def main():
     val_loss = []
 
     loss_per_50epoch = []
-    MOST_TRAIN_LOSS = float('inf')
-    MOST_VAL_LOSS = float('inf')
+    BEST_TRAIN_LOSS = float('inf')
+    BEST_VAL_LOSS = float('inf')
 
-    MOST_TRAIN_LOSS_MODEL = ""
-    MOST_VALID_LOSS_MODEL = ""
+    BEST_TRAIN_LOSS_MODEL = ""
+    BEST_VALID_LOSS_MODEL = ""
 
     for epoch in range(EPOCHS):
         print(f"Epoch {epoch+1} of {EPOCHS}")
         # 開始時刻及びフォーマット
-        start_time = dt.datetime.now()
-        formatted_start_time = start_time.strftime("%Y-%m-%d %H:%M:%S")
+        epoch_start_time = dt.datetime.now()
+        formatted_epoch_start_time = epoch_start_time.strftime("%Y-%m-%d %H:%M:%S")
 
         # lap_time = end_time - start_time
 
@@ -392,20 +413,26 @@ def main():
 
         # ラップタイムを計算する
         end_time = dt.datetime.now()
-        lap_time = end_time - start_time
+        lap_time = end_time - epoch_start_time
         lap_times.append(lap_time)
+
+        #トータルタイムを計算する
+        total_time = time.time() - start_time
+        # 秒単位の時間をHH:MM:SSに変換
+        elapsed_total_time_hms = time.strftime("%H:%M:%S", time.gmtime(total_time))
 
         record_progress_vram_information(
             f"{info_dir_path}/{now_str}_LossInfo.csv",
             epoch + 1,
-            formatted_start_time,
+            formatted_epoch_start_time,
             lap_time,
+            elapsed_total_time_hms,
             train_epoch_loss,
             val_epoch_loss,
         )
 
         if (epoch + 1)  % 50 == 0:
-            wait_data = f"model{epoch-49}_{epoch + 1}.pth"
+            wait_data = f"model_epoch_{epoch + 1}.pth"
             loss_per_50epoch.append([wait_data,train_epoch_loss,val_epoch_loss])
 
             model_path = f"{info_dir_path}/models/{wait_data}"
@@ -422,17 +449,21 @@ def main():
                 },
                 model_path
             )
-            if MOST_TRAIN_LOSS > float(train_epoch_loss):
-                MOST_TRAIN_LOSS = float(train_epoch_loss)
-                MOST_TRAIN_LOSS_MODEL = wait_data
+            if BEST_TRAIN_LOSS > float(train_epoch_loss):
+                BEST_TRAIN_LOSS = float(train_epoch_loss)
+                BEST_TRAIN_LOSS_MODEL = wait_data
 
-            if MOST_VAL_LOSS > float(val_epoch_loss):
-                MOST_VAL_LOSS = float(train_epoch_loss)
-                MOST_VALID_LOSS_MODEL = wait_data
+            if BEST_VAL_LOSS > float(val_epoch_loss):
+                BEST_VAL_LOSS = float(train_epoch_loss)
+                BEST_VALID_LOSS_MODEL = wait_data
 
             # validationデータをつかってモデルのテストを行う
-            valid_images_dir = f"valid_images_{epoch-49}_{epoch + 1}"
-            valid_images_dir_path = f"{info_dir_path}/{valid_images_dir}"
+            save_valid_images_dir = f"{info_dir_path}/valid_images"
+            if not os.path.exists(save_valid_images_dir):
+                os.makedirs(save_valid_images_dir)
+
+            valid_images_dir = f"epoch_{epoch + 1}"
+            valid_images_dir_path = f"{save_valid_images_dir}/{valid_images_dir}"
             if not os.path.exists(valid_images_dir_path):
                 os.makedirs(valid_images_dir_path)
 
@@ -459,28 +490,22 @@ def main():
     plt.legend()
     plt.savefig(f"{info_dir_path}/loss.png")
 
-    torch.save(
-        {
-            "epoch": EPOCHS,
-            "model_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-            "loss": criterion,
-        },
-        f"{info_dir_path}/model.pth",
-    )
+    elapsed_time = time.time() - start_time
+    elapsed_time_hms = time.strftime("%H:%M:%S", time.gmtime(elapsed_time))
 
     # csvファイルのヘッダの有無を確認
     param_lsit = [
         "MODEL_NAME",
-        "EPOCHS",
+        "EXECUTED_EPOCHS",
         "BATCH_SIZE",
         "LR",
         "DATA_AUG_FAC",
-        "MOST_TRAIN_LOSS",
-        "MOST_TRAIN_LOSS_MODEL",
-        "MOST_VALID_LOSS",
-        "MOST_VALID_LOSS_MODEL",
-        "RESULT_FILE"
+        "BEST_TRAIN_LOSS",
+        "BEST_TRAIN_LOSS_MODEL",
+        "BEST_VALID_LOSS",
+        "BEST_VALID_LOSS_MODEL",
+        "RESULT_FILE",
+        "ELAPSED_TIME"
     ]
     # ファイル名
     result_csv = 'result.csv'
@@ -498,11 +523,12 @@ def main():
                    BATCH_SIZE,
                    LR,
                    DATA_AUG_FAC,
-                   MOST_TRAIN_LOSS,
-                   MOST_TRAIN_LOSS_MODEL,
-                   MOST_VAL_LOSS,
-                   MOST_VALID_LOSS_MODEL,
-                   info_dir_name]
+                   BEST_TRAIN_LOSS,
+                   BEST_TRAIN_LOSS_MODEL,
+                   BEST_VAL_LOSS,
+                   BEST_VALID_LOSS_MODEL,
+                   info_dir_name,
+                   elapsed_time_hms]
 
     with open(result_csv_path, "a") as f:
         writer = csv.writer(f)
@@ -510,22 +536,22 @@ def main():
         writer.writerow(paramd_data)
 
 
-    # 50エポック毎のモデル及び誤差量
-    loss_per_50epoch_csv = 'loss_per_50epoch.csv'
-    loss_per_50epoch_path = f"{info_dir_path}/{loss_per_50epoch_csv}"
-    loss_per_50epoch_header = ["MODEL_PTH","TRAIN_EPOCH_LOSS","VAL_EPOCH_LOSS"]
+    # # 50エポック毎のモデル及び誤差量
+    # loss_per_50epoch_csv = 'loss_per_50epoch.csv'
+    # loss_per_50epoch_path = f"{info_dir_path}/{loss_per_50epoch_csv}"
+    # loss_per_50epoch_header = ["MODEL_PTH","TRAIN_EPOCH_LOSS","VAL_EPOCH_LOSS"]
 
-    # ファイルが存在しない場合のみ新たに作成
-    if not os.path.exists(loss_per_50epoch_path):
-        with open(loss_per_50epoch_path, 'w') as f:
-            writer = csv.writer(f)
-            # ヘッダ行を書き込みます（必要に応じて修正してください）
-            writer.writerow(loss_per_50epoch_header)
+    # # ファイルが存在しない場合のみ新たに作成
+    # if not os.path.exists(loss_per_50epoch_path):
+    #     with open(loss_per_50epoch_path, 'w') as f:
+    #         writer = csv.writer(f)
+    #         # ヘッダ行を書き込みます（必要に応じて修正してください）
+    #         writer.writerow(loss_per_50epoch_header)
 
-    with open(loss_per_50epoch_path, "a") as f:
-        writer = csv.writer(f)
-        # writer.writerow(param_lsit)
-        writer.writerow(loss_per_50epoch)
+    # with open(loss_per_50epoch_path, "a") as f:
+    #     writer = csv.writer(f)
+    #     # writer.writerow(param_lsit)
+    #     writer.writerow(loss_per_50epoch)
 
     print("DONE TRAINING")
 
