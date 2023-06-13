@@ -5,6 +5,8 @@
 .ssh/
 id_git_container
 id_git_container.pub
+.bash_history
+.nv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
