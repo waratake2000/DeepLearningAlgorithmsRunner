@@ -1,3 +1,11 @@
+# 自分で追加したやつ
+.gnupg/
+.gitconfig
+.vscode-server/
+.ssh/
+id_git_container
+id_git_container.pub
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
