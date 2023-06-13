@@ -506,7 +506,7 @@ def main():
         "LR",
         "NUM_OF_TRAIN_DATA",
         "NUM_OF_VALID_DATA",
-        "IMAGE_SIZE"
+        "IMAGE_SIZE",
         "DATA_AUG_FAC",
         "ELAPSED_TIME",
         "BEST_TRAIN_LOSS",
