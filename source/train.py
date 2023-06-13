@@ -371,6 +371,11 @@ def main():
     valid_tensor_data = FaceKeypointDataset(valid_numpy_dataset, config.RESIZE)
     print(train_tensor_data[0])
 
+    print("train_tensor_dataの数",len(train_tensor_data))
+    print("valid_tensor_dataの数",len(valid_tensor_data))
+    NUM_OF_TRAIN_DATA = len(train_tensor_data)
+    NUM_OF_VALID_DATA = len(valid_tensor_data)
+
     train_loader = DataLoader(train_tensor_data, batch_size=BATCH_SIZE, shuffle=True)
     valid_loader = DataLoader(valid_tensor_data, batch_size=BATCH_SIZE, shuffle=True)
 
@@ -499,13 +504,17 @@ def main():
         "EXECUTED_EPOCHS",
         "BATCH_SIZE",
         "LR",
+        "NUM_OF_TRAIN_DATA",
+        "NUM_OF_VALID_DATA",
+        "IMAGE_SIZE"
         "DATA_AUG_FAC",
+        "ELAPSED_TIME",
         "BEST_TRAIN_LOSS",
         "BEST_TRAIN_LOSS_MODEL",
         "BEST_VALID_LOSS",
         "BEST_VALID_LOSS_MODEL",
         "RESULT_FILE",
-        "ELAPSED_TIME"
+
     ]
     # ファイル名
     result_csv = 'result.csv'
@@ -522,13 +531,16 @@ def main():
                    EPOCHS,
                    BATCH_SIZE,
                    LR,
+                   NUM_OF_TRAIN_DATA,
+                   NUM_OF_VALID_DATA,
+                   config.RESIZE,
                    DATA_AUG_FAC,
+                   elapsed_time_hms,
                    BEST_TRAIN_LOSS,
                    BEST_TRAIN_LOSS_MODEL,
                    BEST_VAL_LOSS,
                    BEST_VALID_LOSS_MODEL,
-                   info_dir_name,
-                   elapsed_time_hms]
+                   info_dir_name]
 
     with open(result_csv_path, "a") as f:
         writer = csv.writer(f)
